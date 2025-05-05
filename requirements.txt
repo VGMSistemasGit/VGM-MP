@@ -1,0 +1,5 @@
+requests>=2.32
+pywin32==306
+qrcode==7.4
+Pillow>=10
+configparser>=5.3

@@ -1,0 +1,15 @@
+venv/
+*.egg-info/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+htmlcov/
+coverage.xml
+.coverage
+.env
+config/settings.ini
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

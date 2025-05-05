@@ -1,0 +1,31 @@
+token    TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587
+publick key     TEST-1d9de972-0c10-44f0-aafc-8924454a0b76
+UserId 63189587
+
+identificador de cuenta: Vendedor 1
+usuario: TESTUSER1243142694
+contraseña: jvdT3Zp8q9
+
+
+store_id	70044176
+external_pos_id	PBTEST
+id (numérico del POS)	112608964
+uuid	22d3bee9fbae4ddfbb76a03aeb6a2081cb64a2342a404e8db3ce04b4e968861c
+
+
+Prueba
+curl -X POST "https://api.mercadopago.com/pos?access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587" -H "Content-Type: application/json" -d "{\"name\":\"Caja PB\",\"external_id\":\"VGMDIS\"}"
+
+
+curl -X POST "https://api.mercadopago.com/stores?access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587" -H "Content-Type: application/json" -d "{\"name\":\"Tienda Sandbox\",\"external_id\":\"STORE001\"}"
+curl -X POST "https://api.mercadopago.com/pos?access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587"   -H "Content-Type: application/json"  -d '{"name": "Mi Tienda Argentina","external_id": "ARG-STORE-001","category": "OTHERS","fixed_amount": true}'
+
+
+curl -X GET 'https://api.mercadopago.com/stores/31410148' -H 'Content-Type: application/json' -H 'Authorization: Bearer TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587'
+
+curl -X GET "https://api.mercadopago.com/stores?access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587" -H "Content-Type: application/json"
+
+
+curl -X GET "https://api.mercadopago.com/users/63189587/stores/search?access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587"
+
+curl -X POST "https://api.mercadopago.com/pos?access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587" -H "Content-Type: application/json" -d "{\"name\":\"Caja PB\",\"external_id\":\"PBTEST\",\"store_id\":70044176}"
