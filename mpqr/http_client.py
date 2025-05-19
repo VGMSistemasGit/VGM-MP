@@ -18,5 +18,7 @@ class HTTPClient:
         t0 = time.perf_counter()
         resp = requests.request(method, BASE_URL + url, headers=self._headers(), **kw)
         log.debug("MP %@ %s → %s (%.3fs)", method.upper(), url, resp.status_code, time.perf_counter() - t0)
+        if resp.status_code >= 400:
+            print(">>> MP Error", resp.status_code, resp.text)
         resp.raise_for_status()
         return resp.json() if resp.content else {}

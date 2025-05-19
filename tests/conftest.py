@@ -4,7 +4,7 @@
 from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env")
+load_dotenv(dotenv_path=Path(__file__).resolve().parent.parent / ".env",override=True)
 
 import json, uuid, pytest
 from types import SimpleNamespace
