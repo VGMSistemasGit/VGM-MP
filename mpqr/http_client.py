@@ -20,5 +20,10 @@ class HTTPClient:
         log.debug("MP %@ %s → %s (%.3fs)", method.upper(), url, resp.status_code, time.perf_counter() - t0)
         if resp.status_code >= 400:
             print(">>> MP Error", resp.status_code, resp.text)
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()          # lanza HTTPError si ≥400
+        except requests.HTTPError as e:
+            raise RuntimeError(
+                f"HTTP {resp.status_code}: {resp.text}"
+            ) from None          # ← propagamos el mensaje JSON
         return resp.json() if resp.content else {}
