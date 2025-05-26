@@ -1,14 +1,24 @@
 from mpqr.qr_client import QRClient
-import os, json
+import os, time, json
 
 token = os.getenv("ACCESS_TOKEN")
-qr    = QRClient(token)
+cli   = QRClient(token)
 
-resp  = qr.create_order("PBTEST", "Artículo X", 1.23)
-print(json.dumps(resp, indent=2))
+print("→ Creando QR …")
+order = cli.create_order("PBTEST", "Artículo X", 150)
+instore_id = order["in_store_order_id"]   # ← usar éste
+print(json.dumps(order, indent=2)[:200], "...\n")
 
-status = qr.get_order("PBTEST", resp["order_id"])
-print("Estado:", status["status"])
+print("→ Consultando estado …")
+for _ in range(5):
+    st = cli.get_order("PBTEST", order["order_id"])
+    if st:
+        print("   status:", st["status"])
+        break
+    time.sleep(2)
 
-cancel = qr.cancel_order("PBTEST", resp["order_id"])
-print("Cancelado:", cancel == {})
+# print("→ Cancelando …")
+# print(cli.cancel_order("PBTEST", instore_id))   # debería mostrar {}
+
+print("→ Cancelando …")
+print(cli.cancel_order(order["order_id"]))    # ← sólo un argumento
