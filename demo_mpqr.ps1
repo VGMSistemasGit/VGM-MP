@@ -49,9 +49,14 @@ $orderId   = $qr.order_id
 $instoreId = $qr.in_store_order_id
 
 Start-Sleep 15         # pequeña pausa para que la orden aparezca
-Write-Host "== 9) GetQRStatus =="
-$status = $srv.GetQRStatus($PosId, $orderId) | ConvertFrom-Json
-Show-Json $status
+# Write-Host "== 9) GetQRStatus =="
+# $status = $srv.GetQRStatus($PosId, $orderId) | ConvertFrom-Json
+# Show-Json $status
+
+# Después de crear el QR
+$instoreId = $qr.in_store_order_id
+$status = $srv.GetQRStatus($instoreId) | ConvertFrom-Json
+Write-Host "Status =" $status.status
 
 
 Write-Host "== 10) CancelQR =="

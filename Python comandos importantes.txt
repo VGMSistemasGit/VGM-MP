@@ -1,0 +1,175 @@
+Requisito	Comando de comprobación
+Python 32-bit instalado	python -c "import platform,sys;print(sys.executable, platform.architecture())" → debe decir 32bit. (OK)
+venv activado	Prompt debe mostrar (venv). (OK)
+PyWin32 instalado	python -c "import pythoncom, win32com; print('pywin32 OK')" (OK)
+
+.env correcto	python -c "import os; print(os.getenv('ACCESS_TOKEN') is not None)" → True.
+
+
+
+python.exe" -u -m pdb "D:\sistemas\MercadoPagoQr\venv\Lib\site-packages\win32com\server\localserver.py" 7B0625B0-F4BB-4F8A-BBA1-0DDEB7E425A1
+
+
+
+1. Limpiar lo anterior
+En cmd
+REM 1-a) Borra el venv viejo (si existe)
+             rd /s /q D:\sistemas\python\MercadoPagoQr\venv  2>nul
+
+REM 1-b) Desregistra el COM (si aún figura)
+			reg delete "HKCR\CLSID\{7B0625B0-F4BB-4F8A-BBA1-0DDEB7E425A1}" /f  2>nul
+			reg delete "HKCR\MPQR.Server" /f  2>nul
+2. Crear venv 32-bit y dependencias
+cmd
+REM 2-a) Crea el nuevo venv con Python 3.11-32
+			cd D:\sistemas\python\MercadoPagoQr
+			python.exe -m venv venv
+
+REM 2-b) Activa el venv
+			venv\Scripts\activate
+
+REM 2-c) Instala requirements + pywin32
+			python -m pip install --upgrade pip
+			python -m pip install -r requirements.txt
+			python -m pip install pywin32        REM se instala la v.306 (compatible 3.11)
+			python -m pip install -r requirements-dev.txt
+
+REM 2-d) Copia DLLs y registra tipos
+			python -m pywin32_postinstall -install
+3. Registrar el COM-Server con la ruta correcta
+cmd
+			python -m com_server.mpqr_server --register
+
+Salida esperada:
+✅ MPQR.Server registrado exitosamente.
+
+El Registro tendrá ahora:
+
+4. Verificación
+4-a. Intérprete carga pywin32
+cmd
+			venv\Scripts\python.exe -c "import pythoncom, pywintypes, platform, sys; print('pywin32 OK en:', sys.executable)"
+Debe imprimir pywin32 OK en: ...\venv\Scripts\python.exe
+
+4-b. Instanciación COM
+En powershell
+# consola normal (no admin)
+			$s = New-Object -ComObject MPQR.Server
+			Write-Host "COM OK:" ($s -ne $null)
+Debe mostrar COM OK: True.
+
+
+pip install fastapi uvicorn
+
+uvicorn webhook_server:app --host 0.0.0.0 --port 8001
+
+ngrok http 8001
+
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+
+
+$s = New-Object -ComObject MPQR.Server
+$s.CreateQR("PBTEST","Art X",1.23) | Out-Null
+$s.LastQrPng()  # debe devolver una cadena larga Base64
+$s.LastOrderId()
+
+curl -X GET "https://api.mercadopago.com/users/me?access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587"
+
+curl -X GET "https://api.mercadopago.com/pos/PBTEST?access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587"
+
+curl -X GET "https://api.mercadopago.com/pos?external_id=PBTEST&access_token=TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587"
+
+$s.SetAccessToken("TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587")
+
+cd D:\sistemas\Python\MercadoPagoQr
+venv\Scripts\activate
+
+python -m com_server.mpqr_server --unregister /reg:32
+python -m com_server.mpqr_server --register /reg:32
+
+$s = New-Object -ComObject MPQR.Server
+$s.SetAccessToken("TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587")
+
+# Debería devolver True sin arrojar “MethodNotFound”
+$json = $s.CreateQR("PBTEST","Art X",1.23)
+$json   # ahora debería mostrar el JSON con qr_png_b64
+
+
+python -m tests.manual_test_qr
+
+python.exe -u "C:\Ruta\a\win32com\server\localserver.py" {7B0625B0-F4BB-4F8A-BBA1-0DDEB7E425A1}
+
+regedit
+
+python.exe -u "$env:VIRTUAL_ENV\Lib\site-packages\win32com\server\localserver.py" {7B0625B0-F4BB-4F8A-BBA1-0DDEB7E425A1}
+
+
+
+D:\sistemas\Python\MercadoPagoQr\venv\Scripts\activate
+python -m com_server.mpqr_server --unregister /reg:32
+python -m com_server.mpqr_server --register  /reg:32
+
+
+
+
+https://81ad-181-164-163-239.ngrok-free.app
+
+
+
+# 1) Instanciar el objeto COM
+$s = New-Object -ComObject MPQR.Server
+
+# 2) Pasar el token (sandbox o productivo)
+$s.SetAccessToken("TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587")
+
+# 3) Generar un QR de $150 en la caja PBTEST
+$json = $s.CreateQR("PBTEST", "Artículo X", 150)
+$json                               
+
+# 4) Grabar la imagen en la carpeta Temp del sistema
+$png = $s.SaveLastPngToFile()       
+"PNG creado en: $png"
+
+# 5) Abrir el archivo para ver el resultado
+Start-Process $png
+
+
+$qr = $s.CreateQR("PBTEST", "Producto Test123", 100.50)
+
+$qr = $s.GetQRStatus("63189587","PBTEST")
+
+# si usas venv x86:
+D:\sistemas\Python\MercadoPagoQr\venv\Scripts\activate
+
+# correr el script
+powershell -ExecutionPolicy Bypass -File demo_mpqr.ps1     -Token  "TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587" -PosId  "PBTEST" -Amount 123.45
+powershell -ExecutionPolicy Bypass -File demo_mpqr.ps1 -Token "TEST-..."
+
+$srv.SetAccessToken("TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587")
+
+
+
+
+
+
+
+$env:MPQR_LOGLEVEL="DEBUG"
+
+
+$srv   = New-Object -ComObject MPQR.Server
+$srv.SetAccessToken("TEST-6315433665621565-042910-cf49248dbba65897a7e6dd30f2f93742-63189587")
+
+$qr      = $srv.CreateQR("PBTEST", "Artículo X", 123.45) | ConvertFrom-Json
+$instore = $qr.in_store_order_id   
+$oid = $qr.order_id 
+Write-Host "Instore:" $instore
+Write-Host "Order id:" $oid
+
+Start-Sleep 15       
+
+$status = $srv.GetQRStatus("PBTEST",$oid) | ConvertFrom-Json
+$status | ConvertTo-Json -Depth 4   
+Write-Host "Estado:" $status.status    
+
+$cancel = $srv.CancelQR($instore) | ConvertFrom-Json   
+

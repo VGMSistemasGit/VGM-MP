@@ -1,0 +1,75 @@
+Credenciales MP(Gustavo)
+* USER_ID : 262712404
+* ACCESS_TOKEN : TEST-5658124640563404-052811-42ac9bb21672effebd70e5a2dabea5ca-262712404
+Sucursal
+* NAME : Sucursal VentaGus 1
+* STORE_ID :  71088280
+* EXTERNAL_STORE_ID : SUC001
+Cajas
+* NAME: CAJA 001
+* EXTERNAL_ID : SUC001CAJA001
+* ID : 113872179
+
+NGROK_TOKEN
+Configuración inicial. Abre Command Prompt o PowerShell y ejecuta:
+ngrok authtoken TU_TOKEN_AQUI
+TOKEN_NGROK_GUS : 2xUqlFUk0XY2W24MFWda8CDI8jA_5XAdRs3qSHbmA6vGi6mEN
+
+Comandos:
+1. Borrar carpeta env o venv
+2. crearlo nuevamente mendiante "virtualenv env" desde cmd como administrador o python -m venv env en versiones 3.13 en adelante
+3. Activar el env mendiante .env\Script\activate
+4. Ejecutar dentro del env el comandopython -m pip install --upgrade pip
+4.1 Ejecutar dentro del env el comando pip install -r requirements.txt
+5. Ejecutar dentro del env el comando pip install -r requirements-dev.txt
+6. Desregistrar el com en caso que este activado: python -m com_server.mpqr_server --unregister /reg:32  ##python -m com_server.mpqr_server --unregister
+7. Registrar el com en caso que este activado: python -m com_server.mpqr_server --register  /reg:32      ##python -m com_server.mpqr_server --register
+8. Levantar el uvicor con: uvicorn webhook_server:app --host 0.0.0.0 --port 8001
+9. Para que funcione aca ya hay que configurar el ngrok y correrlo mendiante un cmd como administrador con ngrok http 8001
+10. Llamar al com para empezar las pruebas: $s = New-Object -ComObject MPQR.Server
+11. Probar si anda el ACCESS_TOKEN con 
+	$s.SetAccessToken("TEST-5658124640563404-052811-42ac9bb21672effebd70e5a2dabea5ca-262712404") 
+	reemplazar con el token correspondiente
+12. Ejecutar para generar una orden y obtener el qr
+	# Debería devolver True sin arrojar “MethodNotFound”
+	$json = $s.CreateQR("SUC001CAJA001","Art X",1.23) donde depende donde se lo haga hay que cambiar el id de la caja, en este caso es SUC001CAJA001
+	$json   # ahora debería mostrar el JSON con qr_png_b64
+	busco el order_id para consultar en el siguiente metodo 
+	$json | ConvertFrom-Json).qr_data
+	$json | ConvertFrom-Json).order_id
+13. Obtener el estado:
+	$qr = $s.GetQRStatus("262712404","SUC001CAJA001")
+	$qr
+	
+	
+	
+para ver si esta registrado por nombre 
+	reg query "HKEY_CLASSES_ROOT\MPQR.Server"
+y por CLSID
+	reg query "HKEY_CLASSES_ROOT\CLSID" /s /f "MPQR.Server"
+	
+# Después de registrar, verifica en ambas vistas del registro
+reg query "HKEY_CLASSES_ROOT\CLSID\{7B0625B0-F4BB-4F8A-BBA1-0DDEB7E425A1}" /reg:32
+reg query "HKEY_CLASSES_ROOT\CLSID\{7B0625B0-F4BB-4F8A-BBA1-0DDEB7E425A1}" /reg:64	
+
+
+/instore/qr/seller/collectors/262712404/pos/SUC001CAJA001/orders
+/instore/qr/seller/collectors/{user_id}/pos/{external_pos_id}/orders
+
+log.setLevel(logging.DEBUG)
+
+# Crear un manejador para escribir a un archivo
+# Reemplaza 'mi_app.log' con el nombre de archivo que desees
+file_handler = logging.FileHandler('mi_app.log')
+file_handler.setLevel(logging.DEBUG)
+
+# Opcional: Crear un formateador
+formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+file_handler.setFormatter(formatter)
+
+# Añadir el manejador al logger
+log.addHandler(file_handler)
+
+# Ahora, los mensajes se escribirán en 'mi_app.log'
+log.info("Este mensaje irá al archivo de log.")
+log.error("Este error también se registrará en el archivo.")

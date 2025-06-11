@@ -1,23 +1,21 @@
+
 # com_server/mpqr_server.py
 """
-Servidor COM “MPQR.Server”  (32 bit recomendado para PowerBuilder 12.6)
-
-• Registro fiable: sale con código 1 si la clave LocalServer32 no se crea.
-• Permite pasar /reg:32 para registrar explícitamente en rama WOW6432Node.
-• No necesita ACCESS_TOKEN en fase de registro; se asigna luego con
-  SetAccessToken().
+Servidor COM 32-bit “MPQR.Server”
 """
-import sys, os, json, pythoncom, winreg as wr
-import tempfile, base64
+import sys, os, json, pythoncom, winreg as wr, tempfile, base64, logging
 from pathlib import Path
 from win32com.server import register
 from dotenv import load_dotenv
 
-# ─────────────────────  rutas de proyecto  ────────────────────────────
-_root = Path(__file__).resolve().parent.parent        # …\MercadoPagoQr
-sys.path.insert(0, str(_root))                       # importar SDK
+# ────────── logging ──────────
+logging.basicConfig(level=logging.INFO,
+                    format="%(asctime)s %(name)s %(levelname)s %(message)s")
+log = logging.getLogger("mpqr_com")
 
-# cargar .env (opcional; NO es obligatorio para registrar)
+# ────────── paths / env ──────
+_root = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(_root))
 load_dotenv(_root / ".env", override=False)
 
 from mpqr.qr_client  import QRClient
@@ -26,21 +24,37 @@ from mpqr.pos_client import POSClient
 CLSID  = "{7B0625B0-F4BB-4F8A-BBA1-0DDEB7E425A1}"
 PROGID = "MPQR.Server"
 
-# ─────────────────────  clase expuesta  ───────────────────────────────
+
 class MPQRServer:
+    # ---------- helper interno ---------------------------------------
+    def _handle_error(self, where: str, exc: Exception):
+        import traceback, io, json
+        buf = io.StringIO()
+        traceback.print_exc(file=buf)
+        return json.dumps({
+            "error"  : str(exc),
+            "method" : where,
+            "detail" : buf.getvalue()
+        })
+    # ───────── helpers ─────────
+    # def _handle_error(self, method:str, exc:Exception):
+    #     """Devuelve un dict de error para que PB/PowerShell lo lean."""
+    #     log.error("%s → %s", method, exc)
+    #     return json.dumps({"success": False, "error": str(exc)})
+    
     _public_methods_ = [
         "SetAccessToken",
         "CreatePOS", "GetPOS",
         "CreateQR", "GetQRStatus", "CancelQR",
-        "LastQrPng", "LastOrderId",'SaveLastPngToFile'
+        "LastQrPng", "LastOrderId", "SaveLastPngToFile"
     ]
-    _reg_progid_ = PROGID
     _reg_clsid_  = CLSID
+    _reg_progid_ = PROGID
 
-    # ------------ constructor -----------------------------------------
+    # ───────── constructor ─────────
     def __init__(self):
         self._token = os.getenv("ACCESS_TOKEN", "")
-        self.qr = self.pos = None          # se crean on-demand
+        self.qr = self.pos = None
         self._last_png = self._last_oid = ""
         if self._token:
             self._build_clients()
@@ -49,40 +63,53 @@ class MPQRServer:
         self.qr  = QRClient(self._token)
         self.pos = POSClient(self._token)
 
-    # ------------ API expuesta a COM ----------------------------------
-    def SetAccessToken(self, token: str):
-        """Configura (o cambia) el access_token en tiempo de ejecución."""
+    
+    # ───────── API COM ─────────
+    def SetAccessToken(self, token:str):
         self._token = token.strip()
         self._build_clients()
         return True
 
-    # ---------- POS ----------
+    # ---- POS ---------------------------------------------------------
     def CreatePOS(self, external_pos_id, name):
-        return json.dumps(self.pos.create_pos(external_pos_id, name))
+        try:
+            return json.dumps(self.pos.create_pos(external_pos_id, name))
+        except Exception as e:
+            return self._handle_error("CreatePOS", e)
 
     def GetPOS(self, external_pos_id):
-        return json.dumps(self.pos.get_pos(external_pos_id))
+        try:
+            return json.dumps(self.pos.get_pos(external_pos_id))
+        except Exception as e:
+            return self._handle_error("GetPOS", e)
 
-    # ---------- QR -----------
+    # ---- QR ----------------------------------------------------------
     def CreateQR(self, external_pos_id, title, amount):
-        res = self.qr.create_order(external_pos_id, title, float(amount))
-        self._last_png = res.get("qr_png_b64", "")
-        self._last_oid = res.get("in_store_order_id", "")
-        return json.dumps(res)
+        try:
+            res = self.qr.create_order(external_pos_id, title, float(str(amount).replace(",", ".")))
+            self._last_png = res.get("qr_png_b64", "")
+            self._last_oid = res.get("in_store_order_id", "")
+            return json.dumps(res)
+        except Exception as e:
+            return self._handle_error("CreateQR", e)
 
-    def GetQRStatus(self, external_pos_id, in_store_order_id):
-        return json.dumps(self.qr.get_order(external_pos_id, in_store_order_id))
+    def GetQRStatus(self, external_pos_id, order_id):
+        try:
+            return json.dumps(self.qr.get_order(external_pos_id, order_id))
+        except Exception as e:
+            return self._handle_error("GetQRStatus", e)    
 
     def CancelQR(self, in_store_order_id):
-        return json.dumps(self.qr.cancel_order(in_store_order_id))
+        try:
+            return json.dumps(self.qr.cancel_order(in_store_order_id))
+        except Exception as e:
+            return self._handle_error("CancelQR", e)
 
-    # buffers para PB
+    # ---- buffers para PB / PowerShell --------------------------------
     def LastQrPng(self):   return self._last_png
     def LastOrderId(self): return self._last_oid
 
-    
-
-    def SaveLastPngToFile(self, folder: str = ""):
+    def SaveLastPngToFile(self, folder:str=""):
         if not self._last_png:
             return ""
         folder = folder or tempfile.gettempdir()
@@ -91,53 +118,39 @@ class MPQRServer:
             f.write(base64.b64decode(self._last_png))
         return str(path)
 
-# ─────────────────────  utilidades CLI  ───────────────────────────────
-def _reg_path(is32: bool) -> str:
-    root = r"Software\Classes\CLSID\{}".format(CLSID)
+# ───────── utilidades CLI (registro) ─────────
+def _reg_path(is32:bool) -> str:
+    base = r"Software\Classes"
     if is32:
-        root = r"Software\Classes\WOW6432Node\CLSID\{}".format(CLSID)
-    return root + r"\LocalServer32"
+        base += r"\WOW6432Node"
+    return rf"{base}\CLSID\{CLSID}\LocalServer32"
 
-def _check_registry(is32: bool) -> bool:
+def _check_registry(is32:bool)->bool:
     try:
         with wr.OpenKey(wr.HKEY_LOCAL_MACHINE, _reg_path(is32)):
             return True
     except FileNotFoundError:
         return False
 
-def _usage() -> None:
-    print("Uso:")
-    print("  python -m com_server.mpqr_server --register [/reg:32]")
-    print("  python -m com_server.mpqr_server --unregister [/reg:32]")
+def _usage():
+    print("python -m com_server.mpqr_server --register [/reg:32]")
+    print("python -m com_server.mpqr_server --unregister [/reg:32]")
     sys.exit(1)
 
-# ─────────────────────  entrada principal  ────────────────────────────
 if __name__ == "__main__":
     args  = sys.argv[1:]
-    is32  = any(a.lower() == "/reg:32" for a in args)
-    b_reg = not is32                    # RegisterClasses: False = 32 bit
+    is32  = any(a.lower()=="/reg:32" for a in args)
+    b_reg = not is32                      # False → registrar en 32-bit
 
     if "--register" in args:
-        try:
-            register.RegisterClasses(MPQRServer, bRegister=b_reg)
-        except Exception as e:
-            print("❌ RegisterClasses falló:", e)
-            sys.exit(1)
-
-        if _check_registry(is32):
-            print(f"✅ {PROGID} registrado ({'32' if is32 else '64'}-bit).")
-            sys.exit(0)
-        else:
-            print("❌ Registro NO encontrado. "
-                  "¿Python/bitness incorrecto o falta de permisos?")
-            sys.exit(1)
+        register.RegisterClasses(MPQRServer, bRegister=b_reg)
+        ok = _check_registry(is32)
+        print("✅ Registrado." if ok else "❌ Registro NO creado.")
+        sys.exit(0 if ok else 1)
 
     elif "--unregister" in args:
-        try:
-            register.UnregisterClasses(MPQRServer)
-            print(f"🗑️  {PROGID} desregistrado.")
-        except Exception as e:
-            print("⚠️  Desregistro incompleto:", e)
+        register.UnregisterClasses(MPQRServer)
+        print("🗑️  Desregistrado.")
         sys.exit(0)
 
     else:

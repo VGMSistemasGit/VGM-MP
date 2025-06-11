@@ -30,6 +30,9 @@ class HTTPClient:
     def _request(self, method: str, url: str, **kw):
         t0   = time.perf_counter()
         log.debug("⮕ Payload JSON: %s", kw.get("json"))
+        # print(BASE_URL  )
+        # print(url )
+        # print(self._headers() )
         resp = requests.request(
             method, BASE_URL + url, headers=self._headers(), **kw
         )
